@@ -5,5 +5,7 @@ description = "Add your description here"
 readme = "README.md"
 requires-python = ">=3.12"
 dependencies = [
+    "folium>=0.20.0",
+    "geopy>=2.5.0",
     "polars>=1.43.2",
 ]
