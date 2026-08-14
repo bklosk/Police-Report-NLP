@@ -64,3 +64,5 @@ contacts_mark43_df.write_csv("data/contacts/fieldcontact_mark43.csv")
 contact_names_df.write_csv("data/contact_names/fieldcontact_name_all.csv")
 contact_names_rms_df.write_csv("data/contact_names/fieldcontact_name_rms.csv")
 contact_names_mark43_df.write_csv("data/contact_names/fieldcontact_name_mark43.csv")
+
+print(contacts_df.glimpse())

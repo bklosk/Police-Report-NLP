@@ -2,34 +2,33 @@
 
 this is a dataset of people stopped on the street by Boston police officers between 2015-2025!
 
-# todo:
+## ner notes:
 
-llm pass for geocoding (infer location from case note and given street address)
-llm pass for outcomes vars (arrest, warning, assisted with miscellaneous task, etc)
-change redacted names to roles; llm pass for pseudonomization and role assignment in each case note
-(e.g. "xxx was stopped and admitted to battering his girlfriend xxx" -> "[perpetrator 1] was stopped and admitted to battering his girlfriend [victim 1]")
+Example input:
 
-    this should allow us to connect each contact_name associated with a stop with their *role* in the stop
-    that should make splink work better
+About 12:55AM on Friday, January 17, 2020, Officers conducted a TStop for VALS (Speeding) on a 2018 Kia Sportage Rental, gray in color, bearing MA-RegXXX, in the driveway next toXXX Norfolk Street, Mattapan.
 
-llm pass to build entity-relationship maps from each stop
-construct graph from entity-relationship maps
+The operator who stated that he did not have his license on him provided a name of XXX with a DOB of XX/XX/XXXX. The operator was unable to provide officers with a connection to the vehicle, stating that someone who he knew only as "XXXrented it.
 
-# Notes:
+Due to the fact that the operator was unable to prove to officers that he legally possessed the vehicle in addition to not being able to tell officers a full name of a person who rented the vehicle, all parties were issued an exit order and frisked for officer safety.
 
-2015-2019 only:
+The operator was ultimately identified as XXX (DOB: XX/XX/XXXX). XXX, who had multiple prior firearm related entries on his BOP (including an open case firearm case in Norfolk Superior Court from January of 2020), was in the gang database as an active Levant member. XXX did not have a valid driver's license and was placed under arrest for VALs.
 
-frisked
-searchperson
-searchvehicle
-summonsissued
-vehicle_make
+The front seat passenger initially provided a name of XXXn with a DOB of XX/XX/XXXX. He was eventually identified as XXX (DOB: XX/XX/XXXX). XXX was on active probation out of Norfolk Superior Court until September of 2021. XXX was in the gang database as an active Levant member. XXX had an open Armed Robbery case out of Suffolk Superior Court from June of 2018. A firearm was located in XXX' waistband.
 
-schema (for each stop)
-fc_num contact_date contact_officer contact_officer_name supervisor supervisor_name street city state zip frisked searchperson searchvehicle summonsissued stop_duration circumstance basis vehicle_year vehicle_state vehicle_make vehicle_model vehicle_color vehicle_style vehicle_type contact_reason
+The back-seat passenger was identified as XXX(DOB: XX/XX/XXXX). XXX was in the gang database as an active Morse Street member. XXX was FIO'ed and released at the scene.
 
-schema (for each person stopped)
+See I202004379 for further.
 
-# statistics:
+Example output:
+
+{
+"entities":[
+
+    ]
+
+}
+
+## statistics:
 
 out of 33917 stops between 2019-2025, 1910 have key_situation == drugs
