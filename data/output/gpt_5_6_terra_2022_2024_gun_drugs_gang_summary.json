@@ -1,0 +1,47 @@
+{
+  "model": "gpt-5.6-terra",
+  "api": "OpenAI Responses API",
+  "prompt_cache_key": "police-report-nlp-96f80352bec234c254284ac2",
+  "prompt_cache_retention": "24h",
+  "target_years": [
+    "2022",
+    "2023",
+    "2024"
+  ],
+  "target_key_situations": [
+    "drugs",
+    "gang",
+    "gun"
+  ],
+  "source_rows": 3024,
+  "source_rows_by_year": {
+    "2022": 0,
+    "2023": 1690,
+    "2024": 1334
+  },
+  "started_at": "2026-08-17T19:51:13.068987+00:00",
+  "resumed_completed_rows": 3024,
+  "completed_rows": 3024,
+  "failed_rows": 0,
+  "completed_at": "2026-08-17T19:51:13.170385+00:00",
+  "elapsed_seconds": 0.101,
+  "new_usage": {
+    "input_tokens": 0,
+    "cached_tokens": 0,
+    "cache_write_tokens": 0,
+    "output_tokens": 0,
+    "reasoning_tokens": 0,
+    "total_tokens": 0
+  },
+  "total_usage": {
+    "input_tokens": 11589728,
+    "cached_tokens": 9562799,
+    "cache_write_tokens": 2017857,
+    "output_tokens": 2867172,
+    "reasoning_tokens": 0,
+    "total_tokens": 14456900
+  },
+  "prompt_cache_hit_rate": 0.8251098731566435,
+  "estimated_standard_cost_usd": 40.3725,
+  "errors": []
+}

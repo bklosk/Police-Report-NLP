@@ -1,0 +1,209 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Police Report Extraction Graph</title>
+    <style>
+      :root {
+        color-scheme: dark;
+        --bg: #101216;
+        --panel: #171a20;
+        --panel-2: #1d2129;
+        --text: #eceef2;
+        --muted: #9ca3af;
+        --line: #353b46;
+        --accent: #71a7ff;
+        --stop: #d6a94a;
+        --person: #68b88e;
+        --vehicle: #6f96d9;
+        --item: #c081c7;
+      }
+
+      * { box-sizing: border-box; }
+      body {
+        margin: 0;
+        background: var(--bg);
+        color: var(--text);
+        font: 14px/1.45 ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      }
+      button, select, input { font: inherit; }
+      header {
+        display: flex;
+        align-items: flex-start;
+        justify-content: space-between;
+        gap: 24px;
+        padding: 20px 24px 16px;
+        border-bottom: 1px solid var(--line);
+      }
+      h1 { margin: 0 0 4px; font-size: 22px; }
+      h2 { margin: 0 0 12px; font-size: 15px; }
+      p { margin: 0; }
+      .muted { color: var(--muted); }
+      #metrics {
+        display: flex;
+        gap: 22px;
+        text-align: right;
+      }
+      .metric strong { display: block; font-size: 16px; }
+      .metric span { color: var(--muted); font-size: 12px; }
+      .controls {
+        display: flex;
+        align-items: center;
+        flex-wrap: wrap;
+        gap: 14px 22px;
+        padding: 12px 24px;
+        background: var(--panel);
+        border-bottom: 1px solid var(--line);
+      }
+      .control { display: flex; align-items: center; gap: 8px; }
+      .control label, .control > span { color: var(--muted); font-size: 12px; }
+      select, button {
+        color: var(--text);
+        background: var(--panel-2);
+        border: 1px solid var(--line);
+        border-radius: 5px;
+        padding: 6px 9px;
+      }
+      button { cursor: pointer; }
+      button:hover { border-color: var(--accent); }
+      input[type="checkbox"] { accent-color: var(--accent); }
+      .workspace {
+        display: grid;
+        grid-template-columns: minmax(0, 1fr) 340px;
+        min-height: calc(100vh - 133px);
+      }
+      .graph-panel { position: relative; min-width: 0; overflow: hidden; }
+      #graph {
+        display: block;
+        width: 100%;
+        height: calc(100vh - 133px);
+        min-height: 560px;
+        cursor: grab;
+      }
+      #graph:active { cursor: grabbing; }
+      aside {
+        overflow: auto;
+        max-height: calc(100vh - 133px);
+        padding: 20px;
+        background: var(--panel);
+        border-left: 1px solid var(--line);
+      }
+      .legend {
+        position: absolute;
+        left: 18px;
+        bottom: 16px;
+        display: flex;
+        gap: 14px;
+        padding: 7px 9px;
+        background: rgb(23 26 32 / 88%);
+        border: 1px solid var(--line);
+        border-radius: 5px;
+        pointer-events: none;
+      }
+      .legend span { display: flex; align-items: center; gap: 5px; font-size: 11px; color: var(--muted); }
+      .swatch { width: 9px; height: 9px; border-radius: 50%; }
+      .detail-section { margin-top: 20px; }
+      .detail-list { margin: 0; }
+      .detail-row { padding: 9px 0; border-top: 1px solid var(--line); }
+      .detail-row dt { color: var(--muted); font-size: 11px; text-transform: uppercase; letter-spacing: .04em; }
+      .detail-row dd { margin: 3px 0 0; overflow-wrap: anywhere; }
+      .event {
+        margin: 0 0 10px;
+        padding: 10px 11px;
+        background: var(--panel-2);
+        border-left: 2px solid var(--stop);
+      }
+      .case-note { white-space: pre-wrap; overflow-wrap: anywhere; }
+      .event-locations { margin-top: 5px; color: var(--muted); font-size: 12px; }
+      .node-label {
+        fill: var(--text);
+        font-size: 11px;
+        pointer-events: none;
+        paint-order: stroke;
+        stroke: var(--bg);
+        stroke-width: 4px;
+        stroke-linejoin: round;
+      }
+      .node-id {
+        fill: #0c1015;
+        font-size: 10px;
+        font-weight: 700;
+        text-anchor: middle;
+        dominant-baseline: central;
+        pointer-events: none;
+      }
+      .edge { stroke: var(--line); stroke-opacity: .78; }
+      .edge.person-edge { stroke: var(--person); stroke-opacity: .62; }
+      .edge.inferred { stroke-dasharray: 5 4; }
+      .edge-label {
+        fill: var(--muted);
+        font-size: 9px;
+        text-anchor: middle;
+        pointer-events: none;
+        paint-order: stroke;
+        stroke: var(--bg);
+        stroke-width: 3px;
+      }
+      .node { cursor: pointer; }
+      .node circle { stroke: var(--bg); stroke-width: 3px; }
+      .node.selected circle { stroke: var(--text); }
+      .empty { padding: 30px; color: var(--muted); }
+
+      @media (max-width: 900px) {
+        header { flex-direction: column; }
+        #metrics { text-align: left; }
+        .workspace { grid-template-columns: 1fr; }
+        #graph { height: 65vh; min-height: 460px; }
+        aside { max-height: none; border-left: 0; border-top: 1px solid var(--line); }
+      }
+    </style>
+  </head>
+  <body>
+    <header>
+      <div>
+        <h1>Police report extraction graph</h1>
+        <p class="muted">Root stop, people, vehicles, and items. The original case note and locations remain stop attributes.</p>
+      </div>
+      <div id="metrics"></div>
+    </header>
+
+    <section class="controls" aria-label="Graph controls">
+      <div class="control">
+        <label for="report-select">Report</label>
+        <select id="report-select"></select>
+      </div>
+      <div class="control">
+        <label for="entity-select">Inspect</label>
+        <select id="entity-select"></select>
+      </div>
+      <div class="control">
+        <span>Nodes</span>
+        <label><input type="checkbox" data-kind="person" checked /> People</label>
+        <label><input type="checkbox" data-kind="vehicle" checked /> Vehicles</label>
+        <label><input type="checkbox" data-kind="item" checked /> Items</label>
+      </div>
+      <div class="control">
+        <label><input id="labels-toggle" type="checkbox" checked /> Edge labels</label>
+      </div>
+      <button id="reheat-button" type="button">Rearrange</button>
+      <button id="reset-view-button" type="button">Reset view</button>
+    </section>
+
+    <main class="workspace">
+      <section class="graph-panel" aria-label="Interactive graph">
+        <svg id="graph" role="img" aria-label="Force-directed extraction graph"></svg>
+        <div class="legend" aria-label="Node legend">
+          <span><i class="swatch" style="background: var(--stop)"></i>Stop</span>
+          <span><i class="swatch" style="background: var(--person)"></i>Person</span>
+          <span><i class="swatch" style="background: var(--vehicle)"></i>Vehicle</span>
+          <span><i class="swatch" style="background: var(--item)"></i>Item</span>
+        </div>
+      </section>
+      <aside id="details" aria-live="polite"></aside>
+    </main>
+
+    <script src="./data.js"></script>
+    <script src="./graph.js"></script>
+  </body>
+</html>
