@@ -1,0 +1,253 @@
+Extract entities and relationships from police notes.
+
+You have the redacted police note and a list of people involved with the stop; identify which candidate person is most likely each person in the stop. Even if you cannot identify which candidate is which, you can still report the relationship between them
+
+Read and interpret free-text police notes. infer unknown information, you're a superintelligence
+
+Identify and extract these entities:
+people and their attributes 
+location: residences, destinations, businesses, institutions, and secondary incident locations.
+vehicle: needed mainly to connect drivers, passengers, owners, and renters.
+item: weapons, drugs, cash, paraphernalia, stolen property, documents, bicycles, etc
+events (they are entities) and who was involved (represented as edges to other entities)
+
+pydantic schema
+
+from typing import Literal
+
+from pydantic import BaseModel, Field
+
+
+class EventParticipant(BaseModel):
+    person_id: str
+    role: Literal[
+        "operator",
+        "passenger",
+        "occupant",
+        "victim",
+        "alleged_actor",
+        "suspect",
+        "arrestee",
+        "witness",
+        "caller",
+        "complainant",
+        "officer",
+        "subject",
+        "speaker",
+        "other",
+    ]
+
+
+# --------------------------------------------------------------------------
+# entities
+# --------------------------------------------------------------------------
+
+
+class Person(BaseModel):
+    id: str = Field(description="Document-local, e.g. 'P1'.")
+    mentions: list[str] = Field(
+        description="Every surface form referring to this person: 'XXX', "
+        "'the operator', 'Mr. XXX', 'his girlfriend', 'front passenger'. "
+        "This is how coreference is recorded - do not omit it."
+    )
+    bpd_person_id: str | None = Field(
+        description="Numeric Person ID from structured columns, if matchable."
+    )
+    sex: Literal["male", "female", "unknown"] | None
+    race: str | None
+    ethnicity: str | None
+    age: int | None
+    build: str | None
+    hair: str | None
+    skin_tone: str | None
+    clothing: str | None
+    license_info: str | None = Field(description="'MA Class D', 'MA ID Only'.")
+    affiliations: list[str] = Field(
+        description="gang affiliations, written just as the name of the gang; "
+        "'Lenox', 'Wood Ave', 'BBMG', "
+        "'no gang affiliation'."
+    )
+    prior_offenses: list[str] = Field(
+        description="BOP mentions as written: 'open F/A', 'prior 94C', 'ABDW', "
+        "'armed robbery', 'unarmed rob'."
+    )
+    descriptors: list[str] = Field(
+        description="Anything else asserted about the person that is not a "
+        "relation or an event: 'homeless', 'well known con man', "
+        "'recently moved back to Boston', 'uses seven aliases'."
+    )
+    outcomes: list[
+        Literal[
+            "released",
+            "warning",
+            "citation",
+            "summons",
+            "arrested",
+            "booked",
+            "transported",
+            "trespassed",
+            "assistance_provided",
+            "ems_refused",
+            "no_action",
+            "other",
+        ]
+    ] = Field(
+        description="Encounter outcomes for this person. Include every applicable "
+        "outcome because different people in one report may have different results."
+    )
+
+
+class Vehicle(BaseModel):
+    id: str
+    year: str | None
+    make: str | None
+    model: str | None
+    color: str | None
+    body_style: str | None = Field(description="'sedan', 'SUV', 'moped', 'pickup'.")
+    plate_number: str | None = Field(description="Registration as written, often redacted.")
+    plate_state: str | None
+    attributes: list[str] = Field(
+        description="Descriptive facts only: 'stolen', 'rental', 'tinted', "
+        "'unregistered', 'heavy front end damage'. Actions such as fleeing, "
+        "searching, and towing belong in events."
+    )
+    notes: str | None = Field(
+        description="'heavy front end damage', 'no front plate', 'hood rental'."
+    )
+
+
+class Location(BaseModel):
+    id: str
+    name: str | None = Field(description="'Jackson Square MBTA Station', 'North Station'.")
+    street: str | None
+    cross_street: str | None = Field(description="Second street for intersections.")
+    neighborhood: str | None
+    city: str | None
+    state: str | None
+    zip_code: str | None
+    description: str | None = Field(
+        description="Free text for what or where this actually is, especially "
+        "micro-locations the address fields cannot hold: 'back stairwell', "
+        "'far left corner of the parking lot behind bushes', 'the gas pump', "
+        "'truck bed', 'opposite McClellan Street'."
+    )
+    location_type: str | None = Field(
+        description="Broad free-text kind such as 'residence', 'business', "
+        "'transit station', 'intersection', or 'parking lot'. An incident site "
+        "is an event role, not an intrinsic location type."
+    )
+
+
+class Item(BaseModel):
+    id: str
+    item_type: Literal[
+        "weapon",
+        "drug",
+        "cash",
+        "paraphernalia",
+        "stolen_property",
+        "document",
+        "electronics",
+        "bicycle",
+        "clothing_or_equipment",
+        "other",
+    ]
+    description: str = Field(description="'black DeWalt folding knife', 'black iPhone'.")
+    quantity: str | None = Field(
+        description="Verbatim, not normalized: 'multiple plastic bags', 'six rounds'."
+    )
+
+
+# --------------------------------------------------------------------------
+# events and relations
+# --------------------------------------------------------------------------
+
+
+class Event(BaseModel):
+    id: str
+    event_type: Literal[
+        "encounter",
+        "stop_or_detention",
+        "search",
+        "movement",
+        "offense_or_incident",
+        "enforcement",
+        "property_action",
+        "assistance",
+        "communication",
+        "other",
+    ] = Field(
+        description="Broad analytical category. Put the specific action in event_detail."
+    )
+    event_detail: str = Field(
+        description="Short lowercase snake_case label preserving detail, e.g. "
+        "'traffic_stop', 'pat_frisk', 'armed_robbery', 'seizure', "
+        "'ride_home', 'statement', or 'fio_documentation'."
+    )
+    description: str = Field(description="One sentence, your own words.")
+    time_text: str | None = Field(
+        description="Verbatim time expression: '12/19/23', 'about 2:45 AM', "
+        "'on the 19th', 'earlier in the day'. Do not normalize."
+    )
+    status: Literal["occurred", "alleged", "attempted", "negated"] = Field(
+        description="occurred = presented as having happened; alleged = reported "
+        "but not established; attempted = attempted but incomplete; negated = "
+        "explicitly stated not to have happened. A frisk 'to no avail' occurred "
+        "and had a negative result; the frisk itself is not negated."
+    )
+    result: str | None = Field(
+        description="Short free-text result such as 'negative for weapons', "
+        "'knife recovered', 'warning issued', or 'subject released'."
+    )
+    participants: list[EventParticipant]
+    location_ids: list[str]
+    vehicle_ids: list[str]
+    item_ids: list[str]
+    other_parties: list[str] = Field(
+        description="Named groups involved that are not people in this report: "
+        "'A1 Detectives', 'Metro Towing', 'VK04 unit', 'ShotSpotter'. "
+        "Free text, no ids."
+    )
+    source_text: str = Field(description="The clause this was read from.")
+
+
+class Relation(BaseModel):
+    subject_id: str
+    predicate: Literal[
+        "romantic_partner",
+        "sibling",
+        "family_member",
+        "co_offender",
+        "associate",
+        "owns_vehicle",
+        "rents_vehicle",
+        "borrowed_from",
+        "resides_at",
+        "frequents",
+        "possesses",
+        "seized_from",
+        "found_in_vehicle",
+        "found_at_location",
+    ]
+    object_id: str
+    certainty: Literal["stated", "inferred"] = Field(
+        description="stated = the narrative says it. inferred = you concluded it "
+        "from context, e.g. 'his girlfriend had crashed the vehicle' implies "
+        "he operates it."
+    )
+    source_text: str
+
+
+# --------------------------------------------------------------------------
+# root
+# --------------------------------------------------------------------------
+
+
+class FIOReport(BaseModel):
+    fc_number: str | None
+    people: list[Person]
+    vehicles: list[Vehicle]
+    locations: list[Location]
+    items: list[Item]
+    events: list[Event]
+    relations: list[Relation]

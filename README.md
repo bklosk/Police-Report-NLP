@@ -1,8 +1,8 @@
-# nlp/ner on police reports
+# knowledge graph from police reports
 
 this is a dataset of people stopped on the street by Boston police officers between 2015-2025!
 
-## ner notes:
+## relationship extraction notes:
 
 Example input:
 
